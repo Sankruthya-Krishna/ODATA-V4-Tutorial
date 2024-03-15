@@ -65,44 +65,46 @@ sap.ui.define([
 		 * Delete an entry.
 		 */
 		onDelete : function () {
-            var oContext,
-                oPeopleList = this.byId("peopleList"),
-                oSelected = oPeopleList.getSelectedItem(),
-                sUserName;
- 
-            if (oSelected) {
-                oContext = oSelected.getBindingContext();
-                sUserName = oContext.getProperty("UserName");
-                oContext.delete().then(function () {
-                    MessageToast.show(this._getText("deletionSuccessMessage", sUserName));
-                }.bind(this), function (oError) {
-                    if (oContext === oPeopleList.getSelectedItem().getBindingContext()) {
-                        this._setDetailArea(oContext);
-                    }
-                    this._setUIChanges();
-                    if (oError.canceled) {
-                        MessageToast.show(this._getText("deletionRestoredMessage", sUserName));
-                        return;
-                    }
-                    MessageBox.error(oError.message + ": " + sUserName);
-                }.bind(this));
-                this._setDetailArea();
-                this._setUIChanges(true);
-            }
-        },
+			var oContext,
+				oPeopleList = this.byId("peopleList"),
+				oSelected = oPeopleList.getSelectedItem(),
+				sUserName;
+
+			if (oSelected) {
+				oContext = oSelected.getBindingContext();
+				sUserName = oContext.getProperty("UserName");
+				oContext.delete().then(function () {
+					MessageToast.show(this._getText("deletionSuccessMessage", [sUserName]));
+				}.bind(this), function (oError) {
+					if (oContext === oPeopleList.getSelectedItem().getBindingContext()) {
+						this._setDetailArea(oContext);
+					}
+					this._setUIChanges();
+					if (oError.canceled) {
+						MessageToast.show(this._getText("deletionRestoredMessage", [sUserName]));
+						return;
+					}
+					MessageBox.error(oError.message + ": " + sUserName);
+				}.bind(this));
+				this._setDetailArea();
+				this._setUIChanges();
+			}
+		},
 
 		/**
 		 * Lock UI when changing data in the input controls
-		 * @param {sap.ui.base.Event} oEvt - Event data
+		 * @param {sap.ui.base.Event} oEvent - Event data
 		 */
-		onInputChange : function (oEvt) {
-			if (oEvt.getParameter("escPressed")) {
+		onInputChange : function (oEvent) {
+			if (oEvent.getParameter("escPressed")) {
 				this._setUIChanges();
 			} else {
 				this._setUIChanges(true);
-				// Check if the username in the changed table row is empty and set the appView
-				// property accordingly
-				if (oEvt.getSource().getParent().getBindingContext().getProperty("UserName")) {
+				/**
+				 * Check if the username in the changed table row is empty and set the appView
+				 * property accordingly
+				 */
+				if (oEvent.getSource().getParent().getBindingContext().getProperty("UserName")) {
 					this.getView().getModel("appView").setProperty("/usernameEmpty", false);
 				}
 			}
@@ -188,7 +190,6 @@ sap.ui.define([
 			var oView = this.getView(),
 				aStates = [undefined, "asc", "desc"],
 				aStateTextIds = ["sortNone", "sortAscending", "sortDescending"],
-				sMessage,
 				iOrder = oView.getModel("appView").getProperty("/order"),
 				sOrder;
 
@@ -197,11 +198,10 @@ sap.ui.define([
 			sOrder = aStates[iOrder];
 
 			oView.getModel("appView").setProperty("/order", iOrder);
-			oView.byId("peopleList").getBinding("items")
-				.sort(sOrder && new Sorter("LastName", sOrder === "desc"));
+			oView.byId("peopleList").getBinding("items").sort(sOrder && new Sorter("LastName",
+				sOrder === "desc"));
 
-			sMessage = this._getText("sortMessage", [this._getText(aStateTextIds[iOrder])]);
-			MessageToast.show(sMessage);
+			MessageToast.show(this._getText("sortMessage", [this._getText(aStateTextIds[iOrder])]));
 		},
 
 		onMessageBindingChange : function (oEvent) {
@@ -230,9 +230,11 @@ sap.ui.define([
 
 			bMessageOpen = true;
 		},
+
 		onSelectionChange : function (oEvent) {
-            this._setDetailArea(oEvent.getParameter("listItem").getBindingContext());
-        },
+			this._setDetailArea(oEvent.getParameter("listItem").getBindingContext());
+		},
+
 		/* =========================================================== */
 		/*           end: event handlers                               */
 		/* =========================================================== */
@@ -244,8 +246,8 @@ sap.ui.define([
 		 * @returns {string} the text belonging to the given ID.
 		 */
 		_getText : function (sTextId, aArgs) {
-			return this.getOwnerComponent().getModel("i18n").getResourceBundle()
-				.getText(sTextId, aArgs);
+			return this.getOwnerComponent().getModel("i18n").getResourceBundle().getText(sTextId,
+				aArgs);
 		},
 
 		/**
@@ -275,17 +277,37 @@ sap.ui.define([
 
 			oModel.setProperty("/busy", bIsBusy);
 		},
+
+		/**
+		 * Toggles the visibility of the detail area
+		 *
+		 * @param {object} [oUserContext] - the current user context
+		 */
 		_setDetailArea : function (oUserContext) {
-            var oDetailArea = this.byId("detailArea"),
-                oLayout = this.byId("defaultLayout"),
-                oSearchField = this.byId("searchField");
- 
-            oDetailArea.setBindingContext(oUserContext || null);
-            // resize view
-            oDetailArea.setVisible(!!oUserContext);
-            oLayout.setSize(oUserContext ? "60%" : "100%");
-            oLayout.setResizable(!!oUserContext);
-            oSearchField.setWidth(oUserContext ? "40%" : "20%");
-        }
+			var oDetailArea = this.byId("detailArea"),
+				oLayout = this.byId("defaultLayout"),
+				oOldContext,
+				oSearchField = this.byId("searchField");
+
+			if (!oDetailArea) {
+				return; // do nothing during view destruction
+			}
+
+			oOldContext = oDetailArea.getBindingContext();
+			if (oOldContext && !oOldContext.isTransient()) {
+				oOldContext.setKeepAlive(false);
+			}
+			if (oUserContext && !oUserContext.isTransient()) {
+				oUserContext.setKeepAlive(true,
+					// hide details if kept entity was refreshed but does not exist any more
+					this._setDetailArea.bind(this));
+			}
+			oDetailArea.setBindingContext(oUserContext || null);
+			// resize view
+			oDetailArea.setVisible(!!oUserContext);
+			oLayout.setSize(oUserContext ? "60%" : "100%");
+			oLayout.setResizable(!!oUserContext);
+			oSearchField.setWidth(oUserContext ? "40%" : "20%");
+		}
 	});
 });

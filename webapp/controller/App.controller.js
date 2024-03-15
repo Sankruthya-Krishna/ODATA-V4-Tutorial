@@ -128,6 +128,22 @@ sap.ui.define([
 		},
 
 		/**
+		 * Reset the data source.
+		 */
+		onResetDataSource : function () {
+			var oModel = this.getView().getModel(),
+				oOperation = oModel.bindContext("/ResetDataSource(...)");
+
+			oOperation.execute().then(function () {
+					oModel.refresh();
+					MessageToast.show(this._getText("sourceResetSuccessMessage"));
+				}.bind(this), function (oError) {
+					MessageBox.error(oError.message);
+				}
+			);
+		},
+
+		/**
 		 * Save changes to the source.
 		 */
 		onSave : function () {
@@ -136,7 +152,7 @@ sap.ui.define([
 					MessageToast.show(this._getText("changesSentMessage"));
 					this._setUIChanges(false);
 				}.bind(this),
-				 fnError = function (oError) {
+				fnError = function (oError) {
 					this._setBusy(false);
 					this._setUIChanges(false);
 					MessageBox.error(oError.message);

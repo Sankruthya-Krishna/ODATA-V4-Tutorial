@@ -15,10 +15,11 @@
 							items="{
 								path: '/People',
 								parameters: {
-								$count: true,
+									$count: true,
 									$$updateGroupId : 'peopleGroup'
 								}
-							}">
+							}"
+							mode="SingleSelectLeft">
 							<headerToolbar>
 								<OverflowToolbar>
 									<content>
@@ -38,7 +39,15 @@
 												<OverflowToolbarLayoutData priority="NeverOverflow"/>
 											</layoutData>
 										</Button>
-
+										<Button
+											id="deleteUserButton"
+											icon="sap-icon://delete"
+											tooltip="{i18n>deleteButtonText}"
+											press=".onDelete">
+											<layoutData>
+												<OverflowToolbarLayoutData priority="NeverOverflow"/>
+											</layoutData>
+										</Button>
 										<Button
 											id="refreshUsersButton"
 											icon="sap-icon://refresh"
@@ -75,7 +84,6 @@
 											value="{UserName}"
 											valueLiveUpdate="true"
 											liveChange=".onInputChange"/>
-
 									</cells>
 									<cells>
 										<Input
@@ -112,7 +120,6 @@
 								press=".onResetChanges"/>
 						</Toolbar>
 					</footer>
-
 				</Page>
 			</pages>
 		</App>
